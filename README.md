@@ -4,7 +4,7 @@ Analysis of different  deep Reinforcement Learning methods
 ## Repository Structure: 
 
 ### Non-RL
-- train-2.py : tflearn code for solving cartpole environnment without using Reinforcement learning
+- train.py : tflearn code for solving cartpole environnment without using Reinforcement learning
 
 ### Deep_Qlearn
 - deepq.py : pytorch code for solving cartpole environnment without using Deep Q-learning
