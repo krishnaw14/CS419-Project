@@ -171,7 +171,7 @@ with tf.Session() as sess:
 			break
 
 	print("Running Reward: ", running_reward)
-	print("Calculating average score: \n\n")
+	print("Calculating average score for the trained agent: \n\n")
 
 	for i in range(100):
 		state = env.reset()
@@ -191,7 +191,7 @@ with tf.Session() as sess:
 			if done:
 				break
 
-		print(episode_score)
+		# print(episode_score)
 		total_score += episode_score
 
 
