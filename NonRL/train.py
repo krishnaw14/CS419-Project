@@ -121,7 +121,7 @@ model.save('Test.model')
 
 #Testing our model on 100 games
 scores=[]
-choices=[]
+action_set=[]
 
 episode=np.empty(no_of_episodes)
 i=0
@@ -139,7 +139,7 @@ for game in range(no_of_episodes):
 		else:
 			action=np.argmax(model.predict(np.asarray(pre_obv).reshape(-1,len(pre_obv),1))[0])
 
-		choices.append(action)
+		action_set.append(action)
 		observation, reward, done, info=env.step(action)
 		pre_obv=observation
 		game_mem.append([observation, action])
@@ -153,8 +153,8 @@ for game in range(no_of_episodes):
 
 
 print("Average score:", np.mean(scores))
-print('Choice 1:', choices.count(1))
-print('Choice 2:', choices.count(0))
+print('Action 1:', action_set.count(1))
+print('Action 0:', action_set.count(0))
 plt.plot(episode, scores)
 plt.show()
 
