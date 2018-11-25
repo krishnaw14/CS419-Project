@@ -24,34 +24,34 @@ if is_ipython:
 
 plt.ion()
 
-#which device
+#which device we are using
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
-
+#experience class for memory
 class exp(object):
 
-    def __init__(self, capacity):
+    def __init__(self, capacity):#consrtuctor command
         self.capacity = capacity
         self.memory = []
         self.position = 0
 
     def push(self, *args):
-        """Saves a transition."""
+        """push will save us a transition"""
         if len(self.memory) < self.capacity:
             self.memory.append(None)
         self.memory[self.position] = Transition(*args)
         self.position = (self.position + 1) % self.capacity
 
-    def sample(self, batch_size):
+    def sample(self, batch_size):#this is to return a random sample
         return random.sample(self.memory, batch_size)
 
-    def __len__(self):
+    def __len__(self):#defining the length function
         return len(self.memory)
 class DQN(nn.Module):
-
+#defining the Q-network
     def __init__(self):
         super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
@@ -60,20 +60,20 @@ class DQN(nn.Module):
         self.bn2 = nn.BatchNorm2d(32)
         self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
         self.bn3 = nn.BatchNorm2d(32)
-        self.head = nn.Linear(448, 2)
+        self.head = nn.Linear(400, 2)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
         return self.head(x.view(x.size(0), -1))
-
+#from the torchvision package
 resize = T.Compose([T.ToPILImage(),
                     T.Resize(40, interpolation=Image.CUBIC),
                     T.ToTensor()])
 
 width = 600
-
+#cart location - by the middle of the cart
 def get_cart_location():
     world_width = env.x_threshold * 2
     scale = width / world_width
@@ -101,12 +101,7 @@ def get_screen():
 
 
 env.reset()
-#plt.figure()
-#plt.imshow(get_screen().cpu().squeeze(0).permute(1, 2, 0).numpy(),
-           #interpolation='none')
-#plt.title('Example extracted screen')
-#plt.show()
-
+#defining the parameters
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.99
@@ -125,7 +120,7 @@ memory = exp(10000)
 
 steps= 0
 
-
+#select and action, wrt to the epsilon greedy algorithm
 def select_action(state):
     global steps
     sample = random.random()
@@ -140,7 +135,7 @@ def select_action(state):
 
 episode_durations = []
 
-
+#plot episode vs duration. Also gives mean over 100 previous episodes. Change len to get better means
 def plotting():
     plt.figure(2)
     plt.clf()
@@ -155,7 +150,7 @@ def plotting():
     if is_ipython:
         display.clear_output(wait=True)
         display.display(plt.gcf())
-
+#optimization function
 def optimize_model():
     if len(memory) < BATCH_SIZE:
         return
@@ -181,8 +176,8 @@ def optimize_model():
     for param in policy_net.parameters():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
-
-iterations = 10
+#The number of iterations we need
+iterations = 500
 for i in range(iterations):
     env.reset()
     last = get_screen()
