@@ -32,10 +32,10 @@ def discount_and_normalize_rewards(episode_rewards):
 
 	return discounted_episode_rewards
 
-# Defining our policy gradient neural network 
+# Defining our policy gradient neural network - 3 FC layers
 # The network takes into input the current state og the environment
 # It outputs a probability distribution in action space via the softmax function
-# 
+# We are using Monte Carlo learninng- employing end of the episode reward to calculate the loss function to update our networkj parameters
 
 with tf.name_scope("policy_gradient"):
 
@@ -81,8 +81,8 @@ with tf.name_scope("policy_gradient"):
 		train_opt = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 
-# Training the agent
 
+# the reward and training iteration parameters
 all_rewards = []
 total_rewards = []
 total_score = 0
@@ -94,8 +94,8 @@ running_reward_list = []
 episode_list = []
 reward_list = []
 
-saver = tf.train.Saver()
 
+# Training the agent
 with tf.Session() as sess:
 	sess.run(tf.global_variables_initializer())
 
@@ -110,13 +110,16 @@ with tf.Session() as sess:
 
 		for t in range(500):
 
+			# We obtain the probability distribution over the action space after softmax over the layer_3_output.
 			action_probability_distribution = sess.run(
 				action_distribution, 
 				feed_dict = {input_ : state.reshape([1,4])})
 
+			# As this is training, we will treat the environment as stochastic. 
 			action = np.random.choice(range(action_probability_distribution.shape[1]), 
 				p=action_probability_distribution.ravel()) 
 
+			# Agent takes the sampled action and observes the corresponding reward and new state. 
 			new_state, reward, done, info = env.step(action)
 
 			episode_states.append(state)
@@ -124,8 +127,8 @@ with tf.Session() as sess:
 			action_ = np.zeros(action_size)
 			action_[action] = 1
 
-			episode_actions.append(action_)
-			episode_rewards.append(reward)
+			episode_actions.append(action_) # We store the actions to evaluate the loss
+			episode_rewards.append(reward) # Stored to evaluate end of episode reward and discounted_cumulative_reward
 
 			if done:
 				episode_rewards_sum = np.sum(episode_rewards)
@@ -134,9 +137,9 @@ with tf.Session() as sess:
 				total_rewards = np.sum(all_rewards)
 				mean_reward = np.divide(total_rewards, episode+1)
 
-				maximum_rewards_recorded = np.amax(all_rewards)
+				maximum_rewards_recorded = np.amax(all_rewards) # To store the maximum reward stored
 
-				running_reward = 0.99*running_reward + 0.01*episode_rewards_sum
+				running_reward = 0.99*running_reward + 0.01*episode_rewards_sum 
 
 				print("-----------------------------------------")
 				print("Episode: ", episode)

@@ -1,3 +1,5 @@
+# The architecture and structure has been taken from pytroch repository but has been written entirely by Krishna Wadhwani. 
+
 import gym
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -36,38 +38,46 @@ class A2C(nn.Module):
 
 		return action_scores, state_values
 
+# Select the action as per the proabbility distribution output by the actor network
+# As this is training, we will treat the environment as stochastic. 
 def select_action(state):
 	state= torch.from_numpy(state).float()
-	action_scores, state_values = model(state)
+	action_scores, state_values = a2c_agent(state)
 	m = Categorical(action_scores)
 	action = m.sample()
-	model.saved_actions.append(SavedAction(m.log_prob(action), state_values))
+	a2c_agent.saved_actions.append(SavedAction(m.log_prob(action), state_values))
 
 	return action.item()
 
+
 def back_propagate():
 	R = 0
-	saved_actions = model.saved_actions
+	saved_actions = a2c_agent.saved_actions
 	policy_losses = []
 	value_losses = []
 	rewards = []
-	for r in model.rewards[::-1]:
-		R = r + gamma*R 
-		rewards.insert(0, R)
+
+	for r in a2c_agent.rewards[::-1]:
+		R = r + gamma*R  # Discounted reward
+		rewards.insert(0, R) # Accumulating the rewards for all the timestep within an episode
 	rewards = torch.tensor(rewards)
-	rewards = (rewards- rewards.mean())/(rewards.std() + eps)
+	rewards = (rewards- rewards.mean())/(rewards.std() + eps) # TD Error
+
 	for (log_prob, value), r in zip(saved_actions, rewards):
-		reward = r - value.item()
-		policy_losses.append(-log_prob * reward)
-		value_losses.append(F.smooth_l1_loss(value, torch.tensor([r])))
+		reward = r - value.item() # Advantage
+		policy_losses.append(-log_prob * reward) # Policy_loss formulation is similar to Monte Carlo Learning but uses advantage value instead of end of episode reward
+		value_losses.append(F.smooth_l1_loss(value, torch.tensor([r]))) # Similar to Q-learning loss formulation
+
+	total_loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
 
 	optimiser.zero_grad()
-	total_loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
 	total_loss.backward()
 	optimiser.step()
 
-	del model.rewards[:]
-	del model.saved_actions[:]
+	# Deleting the rewards and action after updating the parameters 
+	# As we formulate our problem as a Marcov process, we can do this and this also enables efficient memory management
+	del a2c_agent.rewards[:]
+	del a2c_agent.saved_actions[:]
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -85,51 +95,50 @@ num_states = 4
 render = False
 eps = np.finfo(np.float32).eps.item()
 
-model = A2C(num_states, num_actions)
-optimiser = optim.Adam(model.parameters(), lr = lr)
+a2c_agent = A2C(num_states, num_actions)
+optimiser = optim.Adam(a2c_agent.parameters(), lr = lr)
 
 episode_list = []
 reward_list = []
 running_reward_list = []
 
 
-def main():
-	running_reward = 10
-	for episode in range(500):
-		state = env.reset()
-		for t in range(500):  
-			action = select_action(state)
-			state, reward, done, info = env.step(action)
-			if render:
-				env.render()
-			model.rewards.append(reward)
-			if done:
-				break
+running_reward = 10
+for episode in range(500):
+	state = env.reset()
+	for t in range(500):  
 
-		running_reward = running_reward * 0.99 + t * 0.01
-		back_propagate()
-		if episode % 10 == 0:
-			print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
-                episode, t, running_reward))
-			print("-----------------------------------------")
-			print("Episode: ", episode)
-			print("Last Episode Reward: ", t)
+		action = select_action(state)
 
+		# Standard gym functions
+		state, reward, done, info = env.step(action)
 
-			episode_list.append(episode)
-			reward_list.append(t)
-		if running_reward > env.spec.reward_threshold:
-			print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, t))
+		a2c_agent.rewards.append(reward)
+
+		if render:
+			env.render()
+
+		if done:
 			break
 
+	running_reward = running_reward * 0.99 + t * 0.01
 
-if __name__ == '__main__':
-    main()
+	back_propagate()
 
+	if episode % 10 == 0: # Display rewards and store them for later plotting
+		print("-----------------------------------------")
+		print("Episode: ", episode, "\n")
+		print("Last Episode Reward: ", t, "\n")
+		print("Running Reward", running_reward, "\n")
+
+
+		episode_list.append(episode)
+		reward_list.append(t)
+
+print("Training Done!\n")
 print("\n-------------Testing--------------\n")
 
-def test_model(model):
+def test_model(a2c_agent):
 	score = 0
 	done = False
 	env = gym.make('CartPole-v0')
@@ -144,11 +153,11 @@ def test_model(model):
 
 total = 0
 for i in range(100):
-	score = test_model(model)
+	score = test_model(a2c_agent)
 	print("Score = ", score)
 	total += score
 
-print("AVERAGE SCORE of the trained A2C Model (over 100 trials):", total/100)
+print("AVERAGE SCORE of the trained Model (over 100 trials):", total/100)
 
 plt.plot(episode_list, reward_list)
 plt.title("Episode Reward Variation")
