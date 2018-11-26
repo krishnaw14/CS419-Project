@@ -33,7 +33,7 @@ def discount_and_normalize_rewards(episode_rewards):
 	return discounted_episode_rewards
 
 # Defining our policy gradient neural network - 3 FC layers
-# The network takes into input the current state og the environment
+# The network takes into input the current state of the environment
 # It outputs a probability distribution in action space via the softmax function
 # We are using Monte Carlo learninng- employing end of the episode reward to calculate the loss function to update our networkj parameters
 

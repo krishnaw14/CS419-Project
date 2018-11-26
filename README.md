@@ -3,6 +3,8 @@ Analysis of different  deep Reinforcement Learning methods
 
 ## Repository Structure: 
 
+random_action.py : Agent without training
+
 ### Non-RL
 - train.py : tflearn code for solving cartpole environnment without using Reinforcement learning
 

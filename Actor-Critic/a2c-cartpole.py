@@ -144,11 +144,13 @@ def test_model(a2c_agent):
 	env = gym.make('CartPole-v0')
 	state = env.reset()
 	while not done:
+		env.render()
 		action = select_action(state)
 		state, reward, done, info = env.step(action)
 		score +=reward
 		if done:
 			break
+	env.close()
 	return score
 
 total = 0
